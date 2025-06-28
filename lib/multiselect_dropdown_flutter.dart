@@ -7,16 +7,17 @@ import 'package:flutter/material.dart';
 const double tileHeight = 50;
 const double selectAllButtonHeight = 40;
 const double searchOptionHeight = 40;
+typedef ItemAsString<T> = String Function(T? item);
 
-class MultiSelectDropdown extends StatefulWidget {
+class MultiSelectDropdown<T> extends StatefulWidget {
   /// List of options to select from
-  final List list;
+  final List<T> list;
 
   /// `label` key in a Map to show as an option. Defaults to 'label'
-  final String label;
+  // final String label;
 
   /// `id` key in a Map to identify an item. Defaults to 'id'
-  final String id;
+  // final String id;
 
   /// `onChange` callback, called everytime when
   /// an item is added or removed with the new
@@ -33,12 +34,14 @@ class MultiSelectDropdown extends StatefulWidget {
   /// {@end-tool}
   final ValueChanged<List> onChange;
 
+  final ItemAsString<T> itemAsString;
+
   /// Number of items to show as text,
   /// beyond that it will show `n` selected
   final int numberOfItemsLabelToShow;
 
   /// Initially selected list
-  final List initiallySelected;
+  final List<T> initiallySelected;
 
   /// Decoration for input element
   final Decoration? boxDecoration;
@@ -87,13 +90,22 @@ class MultiSelectDropdown extends StatefulWidget {
   /// Padding for the input element.
   final EdgeInsets? padding;
 
+  final InputDecoration? inputDecoration;
+
+  final Color? checkColor;
+
+  final WidgetStateProperty<Color?>? fillColor;
+
+  final IconData? openIcon, closeIcon;
+
   /// Mutiple selection dropdown for List of Maps.
   const MultiSelectDropdown({
     super.key,
     required this.list,
+    required this.itemAsString,
     required this.initiallySelected,
-    this.label = 'label',
-    this.id = 'id',
+    // this.label = 'label',
+    // this.id = 'id',
     required this.onChange,
     this.numberOfItemsLabelToShow = 3,
     this.boxDecoration,
@@ -108,12 +120,18 @@ class MultiSelectDropdown extends StatefulWidget {
     this.splashColor,
     this.listTextStyle,
     this.padding,
+    this.inputDecoration,
+    this.checkColor,
+    this.fillColor,
+    this.closeIcon,
+    this.openIcon
   }) : isSimpleList = false;
 
   /// Mutiple selection dropdown for simple List.
   const MultiSelectDropdown.simpleList({
     super.key,
     required this.list,
+    required this.itemAsString,
     required this.initiallySelected,
     required this.onChange,
     this.numberOfItemsLabelToShow = 3,
@@ -129,15 +147,18 @@ class MultiSelectDropdown extends StatefulWidget {
     this.splashColor,
     this.listTextStyle,
     this.padding,
-  })  : label = '',
-        id = '',
-        isSimpleList = true;
+    this.inputDecoration,
+    this.checkColor,
+    this.fillColor,
+    this.closeIcon,
+    this.openIcon
+  })  : isSimpleList = true;
 
   @override
-  State<MultiSelectDropdown> createState() => _MultiSelectDropdownState();
+  State<MultiSelectDropdown<T>> createState() => _MultiSelectDropdownState();
 }
 
-class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
+class _MultiSelectDropdownState<T> extends State<MultiSelectDropdown<T>> {
   late List selected = [...widget.initiallySelected];
   late final Decoration boxDecoration;
   List filteredOptions = [];
@@ -150,7 +171,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
       return selected.contains(data);
     } else {
       for (Map obj in selected) {
-        if (obj[widget.id] == data) {
+        if (obj == data) {
           return true;
         }
       }
@@ -169,9 +190,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
           selected.remove(data);
         });
       } else {
-        int itemIndex = selected.indexWhere(
-          (obj) => obj[widget.id] == data[widget.id],
-        );
+        int itemIndex = selected.indexWhere((obj) => obj == data);
         if (itemIndex == -1) {
           return;
         } else {
@@ -196,17 +215,21 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
         checkboxFillColor: widget.checkboxFillColor,
         splashColor: widget.splashColor,
         textStyle: widget.listTextStyle,
+        checkColor: widget.checkColor,
+        fillColor: widget.fillColor,
       );
     } else {
       return _CustomTile(
-        value: isSelected(data[widget.id]),
+        value: isSelected(data),
         onChanged: (bool newValue) {
           handleOnChange(newValue, data);
         },
-        title: '${data[widget.label]}',
+        title: widget.itemAsString(data),
         checkboxFillColor: widget.checkboxFillColor,
         splashColor: widget.splashColor,
         textStyle: widget.listTextStyle,
+        checkColor: widget.checkColor,
+        fillColor: widget.fillColor,
       );
     }
   }
@@ -222,18 +245,12 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
       } else {
         searchText = searchText.toLowerCase();
         if (widget.isSimpleList) {
-          List newList = widget.list.where((text) {
-            return '$text'.toLowerCase().contains(searchText);
-          }).toList();
+          List newList = widget.list.where((text) => '$text'.toLowerCase().contains(searchText)).toList();
           setState(() {
             filteredOptions = newList;
           });
         } else {
-          List newList = widget.list.where((objData) {
-            return '${objData[widget.label]}'
-                .toLowerCase()
-                .contains(searchText);
-          }).toList();
+          List<T> newList = widget.list.where((objData) => widget.itemAsString(objData).toLowerCase().contains(searchText)).toList();
           setState(() {
             filteredOptions = newList;
           });
@@ -242,30 +259,34 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
     });
   }
 
-  Widget buildSearchOption() {
-    return TextField(
-      controller: filterController,
-      onChanged: onSearchTextChanged,
-      textAlignVertical: TextAlignVertical.center,
-      decoration: const InputDecoration(
-        isDense: true,
-        border: OutlineInputBorder(),
-        hintText: 'filter...',
-        constraints: BoxConstraints(
-          minHeight: searchOptionHeight,
-          maxHeight: searchOptionHeight,
-        ),
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 15,
-          vertical: 10,
+  Widget buildSearchOption({InputDecoration? inputDecoration}) {
+    return Padding(
+      padding: const EdgeInsetsGeometry.symmetric(horizontal: 8.0, vertical: 5.0),
+      child: TextField(
+        controller: filterController,
+        onChanged: onSearchTextChanged,
+        textAlignVertical: TextAlignVertical.center,
+        decoration: inputDecoration ?? const InputDecoration(
+          isDense: true,
+          border: OutlineInputBorder(),
+          hintText: 'filter...',
+          constraints: BoxConstraints(
+            minHeight: searchOptionHeight,
+            maxHeight: searchOptionHeight,
+          ),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 15,
+            vertical: 10,
+          ),
         ),
       ),
     );
   }
 
   Widget buildSelectAllButton() {
-    return InkWell(
-      onTap: () {
+    return _CustomTile(
+      value: (selected.length == widget.list.length),
+      onChanged: (newValue) {
         if (selected.length == widget.list.length) {
           selected.clear();
         } else {
@@ -275,17 +296,12 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
         widget.onChange(selected);
         setState(() {});
       },
-      child: Container(
-        height: selectAllButtonHeight,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.grey),
-          ),
-        ),
-        child: const Text('Select all'),
-      ),
+      title: 'Select all',
+      checkboxFillColor: widget.checkboxFillColor,
+      splashColor: widget.splashColor,
+      textStyle: widget.listTextStyle,
+      checkColor: widget.checkColor,
+      fillColor: widget.fillColor,
     );
   }
 
@@ -329,22 +345,20 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
       return widget.whenEmpty;
     }
 
-    if (widget.numberOfItemsLabelToShow < selected.length) {
-      return '${selected.length} selected';
-    }
+    if (widget.numberOfItemsLabelToShow < selected.length) return '${selected.length} selected';
 
     if (widget.isSimpleList) {
       final int itemsToShow = selected.length;
       String finalString = "";
       for (int i = 0; i < itemsToShow; i++) {
-        finalString = '$finalString ${selected[i]}, ';
+        finalString = '$finalString ${widget.itemAsString(selected[i])}, ';
       }
       return finalString.substring(0, finalString.length - 2);
     } else {
       final int itemsToShow = selected.length;
       String finalString = "";
       for (int i = 0; i < itemsToShow; i++) {
-        finalString = '$finalString ${selected[i][widget.label]}, ';
+        finalString = '$finalString ${widget.itemAsString(selected[i])}, ';
       }
       return finalString.substring(0, finalString.length - 2);
     }
@@ -386,49 +400,40 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
           child: MenuAnchor(
             crossAxisUnconstrained: false,
             style: MenuStyle(
-              fixedSize: MaterialStateProperty.resolveWith((states) {
-                return Size(modalWidth, modalHeight);
-              }),
-              padding: MaterialStateProperty.resolveWith((states) {
-                return EdgeInsets.zero;
-              }),
+              fixedSize: WidgetStateProperty.resolveWith((states) => Size(modalWidth, modalHeight)),
+              padding: WidgetStateProperty.resolveWith((states) => EdgeInsets.zero),
             ),
-            builder: (context, controller, _) {
-              return InkWell(
-                onTap: () {
-                  if (controller.isOpen) {
-                    controller.close();
-                  } else {
-                    controller.open();
-                  }
-                },
-                child: Container(
-                  padding: widget.padding ??
-                      const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: boxDecoration,
-                  width: modalWidth,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          textToShow,
-                          style: widget.textStyle,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                        ),
+            builder: (context, controller, _) => InkWell(
+              onTap: () {
+                if (controller.isOpen) {
+                  controller.close();
+                } else {
+                  controller.open();
+                }
+              },
+              child: Container(
+                padding: widget.padding ?? const EdgeInsets.symmetric(horizontal: 12),
+                decoration: boxDecoration,
+                width: modalWidth,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        textToShow,
+                        style: widget.textStyle,
+                        overflow: TextOverflow.fade,
+                        softWrap: false,
                       ),
-                      const Icon(Icons.arrow_drop_down_sharp),
-                    ],
-                  ),
+                    ),
+                    Icon((controller.isOpen) ? (widget.closeIcon ?? Icons.arrow_drop_up_rounded) : (widget.openIcon ?? Icons.arrow_drop_down_rounded)),
+                  ],
                 ),
-              );
-            },
+              ),
+            ),
             menuChildren: [
-              if (widget.includeSearch) buildSearchOption(),
+              if (widget.includeSearch) buildSearchOption(inputDecoration: widget.inputDecoration),
               if (widget.includeSelectAll) buildSelectAllButton(),
-              ...filteredOptions.map((data) {
-                return buildTile(data);
-              }).toList(),
+              ...filteredOptions.map((data) => buildTile(data)).toList(),
             ],
           ),
         );
@@ -446,6 +451,8 @@ class _CustomTile extends StatelessWidget {
     this.checkboxFillColor,
     this.splashColor,
     this.textStyle,
+    this.checkColor,
+    this.fillColor,
   });
 
   final String title;
@@ -453,6 +460,8 @@ class _CustomTile extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   final Color? checkboxFillColor;
+  final Color? checkColor;
+  final WidgetStateProperty<Color?>? fillColor;
   final Color? splashColor;
   final TextStyle? textStyle;
 
@@ -468,22 +477,33 @@ class _CustomTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeData = Theme.of(context);
     return InkWell(
-      splashColor: splashColor ?? themeData.primaryColor,
+      splashColor: splashColor ?? Colors.black12,
       hoverColor: Colors.black12,
       onTap: handleOnChange,
       child: SizedBox(
         height: tileHeight,
         child: Row(
+          spacing: 6,
           children: [
-            const SizedBox(width: 6),
+            const SizedBox.shrink(),
             Checkbox(
-              fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-                return checkboxFillColor ?? themeData.primaryColor;
-              }),
+              checkColor: checkColor,
+              fillColor: fillColor ?? WidgetStateProperty.resolveWith<Color>((states) => checkboxFillColor ?? themeData.primaryColor),
               value: value,
               onChanged: null,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: ContinuousRectangleBorder(
+                borderRadius: BorderRadiusGeometry.circular(5),
+                side: const BorderSide(
+                  width: 1,
+                  color: Colors.black
+                )
+              ),
+              side: const BorderSide(
+                  width: 1,
+                  color: Colors.black
+              ),
             ),
-            const SizedBox(width: 5),
             Expanded(
               child: Text(
                 title,

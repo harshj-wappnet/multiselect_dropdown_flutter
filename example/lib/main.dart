@@ -29,7 +29,7 @@ class MultiSelectExample extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            MultiSelectDropdown(
+            MultiSelectDropdown<Map<String, dynamic>>(
               list: const [
                 {'id': 'dog', 'label': 'Dog'},
                 {'id': 'cat', 'label': 'Cat'},
@@ -43,12 +43,13 @@ class MultiSelectExample extends StatelessWidget {
               },
               numberOfItemsLabelToShow: 2, // label to be shown for 2 items
               whenEmpty:
-                  'Choose from the list', // text to show when selected list is empty
+                  'Choose from the list', itemAsString: (item) => item?['label'] ?? "", // text to show when selected list is empty
             ),
             const SizedBox(
               height: 20,
             ),
-            MultiSelectDropdown.simpleList(
+            MultiSelectDropdown<String>.simpleList(
+              itemAsString: (item) => item ?? "",
               list: const [
                 'Dog',
                 'Cat',
@@ -67,9 +68,14 @@ class MultiSelectExample extends StatelessWidget {
               includeSelectAll: true,
               isLarge: true, // Modal size will be a little large
               // Give a definite width when rendering this widget in a row
-              width: 150, // Must be a definite number
+              // width: 150, // Must be a definite number
+              fillColor: WidgetStateProperty.resolveWith((states) => (states.contains(WidgetState.selected)) ? Colors.blueAccent : Colors.transparent),
               boxDecoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(
+                  color: Colors.grey,
+                  width: 1
+                )
               ),
             ),
           ],
