@@ -487,21 +487,26 @@ class _CustomTile extends StatelessWidget {
           children: [
             const SizedBox.shrink(),
             Checkbox(
-              checkColor: checkColor,
-              fillColor: fillColor ?? WidgetStateProperty.resolveWith<Color>((states) => checkboxFillColor ?? themeData.primaryColor),
+              checkColor: Colors.white,
+              fillColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) {
+                if (states.contains(MaterialState.selected)) {
+                  return checkboxFillColor ?? themeData.primaryColor;
+                }
+                return checkboxFillColor ?? Colors.transparent;
+              }),
               value: value,
               onChanged: null,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: ContinuousRectangleBorder(
                 borderRadius: BorderRadius.circular(5),
-                side: const BorderSide(
+                side: BorderSide(
                   width: 1,
-                  color: Colors.black
+                  color: checkboxFillColor ?? Colors.black
                 )
               ),
-              side: const BorderSide(
+              side: BorderSide(
                   width: 1,
-                  color: Colors.black
+                  color: checkboxFillColor ?? Colors.black
               ),
             ),
             Expanded(
