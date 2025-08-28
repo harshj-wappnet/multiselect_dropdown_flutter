@@ -261,7 +261,7 @@ class _MultiSelectDropdownState<T> extends State<MultiSelectDropdown<T>> {
 
   Widget buildSearchOption({InputDecoration? inputDecoration}) {
     return Padding(
-      padding: const EdgeInsetsGeometry.symmetric(horizontal: 8.0, vertical: 5.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
       child: TextField(
         controller: filterController,
         onChanged: onSearchTextChanged,
@@ -493,7 +493,7 @@ class _CustomTile extends StatelessWidget {
               onChanged: null,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: ContinuousRectangleBorder(
-                borderRadius: BorderRadiusGeometry.circular(5),
+                borderRadius: BorderRadius.circular(5),
                 side: const BorderSide(
                   width: 1,
                   color: Colors.black
